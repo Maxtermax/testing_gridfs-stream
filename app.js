@@ -20,68 +20,100 @@ console.log("conexion abierta")//conecction open ar archivo collection
 
 var gfs = Grid(conn.db, mongoose.mongo);
 /*
+var ID=new mongoID();
 var escritura=gfs.createWriteStream({
-	_id:new mongoID(),
-	filename:'bruno-Mars',
+	_id:ID,
+	filename:'esneyder',
 	mode:"w",
-	chunkSize:1024,
-	content_type:"video/mp4",
+	chunkSize:1024*4,
+	content_type:"image/gif",
 	root:"fs",
 	metadata:{
-		"data":"data extra"
+		"data":"Soy batman",
+		"ID":ID+".formato"
 	}
 });
 
-fs.createReadStream('../file/bruno.mp4').pipe(escritura);
- 
+fs.createReadStream('./file/batman.gif').pipe(escritura);
 escritura.on("close",function(file){
 	console.log(file);
 });
-WORK GOOD
 */
 
 
 
-var readStream=gfs.createReadStream({
-	_id:"53cbfcac709687fc16d7401b",
- range: {
-    startPos:0,
-		endPos:40233373
-  }
+/*
+var id='53cdb016d536cc3018c949e4';
+
+gfs.exist({_id:id}, function (err, found) {
+  if (err) return handleError(err);
+  found ? console.log('File exists') : console.log('File does not exist');
+});//Comprueba la existencia del archivo 
+
+gfs.remove({_id:id}, function (err) {
+  if (err) return handleError(err);
+  console.log('success');
+
+});//remueve el archivo
+*/
+
+/*
+gfs.files.find({ filename:'esneyder'}).toArray(function (err, files) {
+    if (err) console.log(err);
+    console.log(files[0].metadata);
+});
+*/
+
+
+
+function SendFile(res,u,id){
+//QUERY FILE
+gfs.files.find({filename:u}).toArray(function(err,docs){
+	var len=docs.length
+	if(err) console.log(err);
+	if(docs[0] === undefined ) res.send(404);//user not found
+
+	for(var i=0;i<len;i++){
+		if(docs[i]["metadata"]["ID"] == id){
+			var readStream=gfs.createReadStream({
+				_id:id.slice(0,24)
+			}).on('open',function(){
+				console.log("start..");
+			}).on('data',function(chunk){
+				//loading...
+				console.log("loading");
+			}).on("end",function(){
+				console.log("ready");
+				//loaded :)
+			}).on('error', function (err){
+				res.send(404);//no found  file :(
+				console.log(err);
+			});
+			readStream.pipe(res.type(docs[i]["contentType"]));
+			console.log(docs[i]["metadata"]);
+			break	
+		}else if(i === len-1){
+			res.send(404);//file not found
+		}
+
+
+	}
+
+
 });
 
 
+};//termina funcion 
 
-	readStream.on('open',function(){
-		console.log("start..");
-	});//open
+app.get("/:u/:video",function(req,res){
+	var user=req.params.u;
+	var file=req.params.video;
+ SendFile(res,user,file);	
 
-
-	readStream.on('data',function(chunk){
-		console.log("loading...")
-	});//loading
-
-	readStream.on("end",function(){
-	  console.log("ready");
-	});//end 
-
-  readStream.on('error', function (err){
-   console.log(err);   
-  });
+});//get file video
 
 
 
-	app.get("/",function(req,res){
-
-		gfs.createReadStream({
-			_id:"53cbfcac709687fc16d7401b",//id of my video in mongodb 
-		 	range: {
-		    startPos:0,
-				endPos:40233373
-		  }
-		}).pipe(res);
-
-	});//get file video
 
 
 /*
